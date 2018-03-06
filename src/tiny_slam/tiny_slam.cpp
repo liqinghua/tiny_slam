@@ -14,7 +14,7 @@
 
 #include <nav_msgs/OccupancyGrid.h>
 
-//#define RVIZ_DEBUG 1
+#define RVIZ_DEBUG 1
 
 #include "../core/sensor_data.h"
 #include "../ros/topic_with_transform.h"
@@ -34,6 +34,7 @@
  */
 class PoseScanMatcherObserver : public GridScanMatcherObserver {
 public:
+  PoseScanMatcherObserver(std::string &frame_odom) : _frame_odom(frame_odom){};
 
   /*!
    * Publishes the robot pose tested by the scan matcher at the moment.
@@ -42,6 +43,7 @@ public:
   virtual void on_scan_test(const RobotState &pose,
                             const TransformedLaserScan &scan,
                             double score) override {
+    //std::cout << "send sm_curr_pose" << std::endl;
     publish_transform("sm_curr_pose", _frame_odom, pose);
   }
   /*!
@@ -51,6 +53,7 @@ public:
   virtual void on_pose_update(const RobotState &pose,
                               const TransformedLaserScan &scan,
                               double score) override {
+    //std::cout << "send sm_best_pose" << std::endl;
     publish_transform("sm_best_pose", _frame_odom, pose);
   }
 private:
@@ -173,27 +176,36 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "tinySLAM");
 
   ros::NodeHandle nh;
+  //获取参数
   TinyWorldParams params = init_common_world_params();
   GridMapParams grid_map_params = init_grid_map_params();
+
   std::shared_ptr<ScanCostEstimator> cost_est{new TinyScanCostEstimator()};
   std::shared_ptr<GridCellStrategy> gcs{new GridCellStrategy{
     init_cell_factory(params), cost_est, init_occ_estimator()}};
+
+  
   std::shared_ptr<TinySlamFascade> slam{new TinySlamFascade(gcs,
     params, grid_map_params, init_skip_exceeding_lsr())};
 
+  //获取参数
   double ros_map_publishing_rate, ros_tf_buffer_size;
   int ros_filter_queue, ros_subscr_queue;
   std::string frame_odom, frame_robot_pose;
   init_constants_for_ros(ros_tf_buffer_size, ros_map_publishing_rate,
                          ros_filter_queue, ros_subscr_queue);
   init_frame_names(frame_odom, frame_robot_pose);
+
+  //scan要和bag文件中对应
   TopicWithTransform<sensor_msgs::LaserScan> scan_observer(nh,
-    "laser_scan", frame_odom, ros_tf_buffer_size,
+    "scan", frame_odom, ros_tf_buffer_size,
     ros_filter_queue, ros_subscr_queue);
   scan_observer.subscribe(slam);
 
+  //发送map消息
   std::shared_ptr<RvizGridViewer> viewer(
-    new RvizGridViewer(nh.advertise<nav_msgs::OccupancyGrid>("/map", 5),
+    // scan文件中已经有一个 /map topic, 这里发布名字不要重复
+    new RvizGridViewer(nh.advertise<nav_msgs::OccupancyGrid>("/map_tiny_slam", 5),
                        ros_map_publishing_rate, frame_odom, frame_robot_pose));
   slam->set_viewer(viewer);
 

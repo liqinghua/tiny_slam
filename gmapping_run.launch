@@ -1,0 +1,20 @@
+<launch>
+  <machine name="local" address="localhost" default="true" />
+
+  <param name="use_sim_time" value="true"/>
+  <arg name="dataset" default="" />
+  <arg name="rate" default="10.0" />
+
+  <!-- 数据文件地址 -->
+  <arg name="path" default="$(find tiny_slam)/TB3_WAFFLE_SLAM.bag" />
+
+  <node name="player" pkg="rosbag" type="play"
+        args="--delay=3 --clock --rate $(arg rate) $(arg path)" />
+
+  <node name="rviz" pkg="rviz" type="rviz" respawn="true"
+        args="-d $(find tiny_slam)/rviz/debug2.rviz" />
+
+  <node name="MapTrasformPublisher" pkg="tf" type="static_transform_publisher"
+        args="0 0 0 0 0 0 odom_combined map 250" cwd="node" required="true"/>
+
+</launch>

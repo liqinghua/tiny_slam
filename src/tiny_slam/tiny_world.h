@@ -89,20 +89,26 @@ public:
                                  double laser_x, double laser_y,
                                  double beam_end_x, double beam_end_y,
                                  bool is_occ, double quality) override {
+    //分别表示激光发射器原点和探测出来点
     Beam beam{laser_x, laser_y, beam_end_x, beam_end_y};
+    //机器人和探测点位置
     Point robot_pt = map.world_to_cell(laser_x, laser_y);
     Point obst_pt = map.world_to_cell(beam_end_x, beam_end_y);
 
     double obst_dist_sq = robot_pt.dist_sq(obst_pt);
+    //产生一条线段，返回线段所有点
     std::vector<Point> pts = DiscreteLine2D(robot_pt, obst_pt).points();
     double hole_dist_sq = std::pow(_params.HOLE_WIDTH / map.cell_scale(), 2);
 
     auto occ_est = _gcs->occupancy_est();
+
+    //最后一个点比较特殊，单独处理 
     Occupancy beam_end_occ = occ_est->estimate_occupancy(beam,
         map.world_cell_bounds(pts.back()), is_occ);
     map.update_cell(pts.back(), beam_end_occ, quality);
     pts.pop_back();
 
+    //对每个点做概率估计，并更新占用概率
     for (const auto &pt : pts) {
       Occupancy empty_cell_value = occ_est->estimate_occupancy(beam,
           map.world_cell_bounds(pts.back()), false);

@@ -12,25 +12,28 @@
  * \brief Class responsibilities: observes laser scans and odometry;
  * converts ROS structures to internal representation.
  */
-class LaserScanObserver : public TopicObserver<sensor_msgs::LaserScan> {
+class LaserScanObserver : public TopicObserver<sensor_msgs::LaserScan>
+{
   using ScanPtr = boost::shared_ptr<sensor_msgs::LaserScan>;
+
 public: //methods
-/**
+        /**
  * Initializes the base laser scan observer.
  * \param skip_max_vals Whether scan points that exceed the max reliable scan-specific distance be skipped.
  */
-  LaserScanObserver(bool skip_max_vals = false):
-    _skip_max_vals(skip_max_vals),
-    _prev_x(0), _prev_y(0), _prev_yaw(0) {}
-/**
+  LaserScanObserver(bool skip_max_vals = false) : _skip_max_vals(skip_max_vals),
+                                                  _prev_x(0), _prev_y(0), _prev_yaw(0) {}
+  /**
  * \brief Converts ROS-specific structures that hold sensor data to internal framework's structures;
  * Laser scan filtering is performed as part of the conversion.
  * \param msg A ROS specific laser scan message.
  * \param t A TF specific transform.
  */
   virtual void handle_transformed_msg(
-    const ScanPtr msg, const tf::StampedTransform& t) {
-
+      const ScanPtr msg, const tf::StampedTransform &t)
+  {
+    //std::cout << "handle msg " << std::endl;
+    //得到当前里程计数据
     double new_x = t.getOrigin().getX();
     double new_y = t.getOrigin().getY();
     double new_yaw = tf::getYaw(t.getRotation());
@@ -39,25 +42,36 @@ public: //methods
     laser_scan.quality = 1.0;
     double angle = msg->angle_min;
 
-    for (const auto &range : msg->ranges) {
+    //生成每个点有效点的坐标数据
+    for (const auto &range : msg->ranges)
+    {
       ScanPoint sp(range, angle);
+      //下一个点的测量角度
       angle += msg->angle_increment;
 
-      if (sp.range < msg->range_min) {
+      //小于最小值无效
+      if (sp.range < msg->range_min)
+      {
         continue;
-      } else if (msg->range_max <= sp.range) {
+      }
+      //太远了，表示没有占据
+      else if (msg->range_max <= sp.range)
+      {
         sp.is_occupied = false;
         sp.range = msg->range_max;
-        if (_skip_max_vals) {
+        if (_skip_max_vals)
+        {
           continue;
         }
       }
       laser_scan.points.push_back(sp);
     }
 
+    //计算增量变换
     laser_scan.d_x = new_x - _prev_x;
     laser_scan.d_y = new_y - _prev_y;
     laser_scan.d_yaw = new_yaw - _prev_yaw;
+    //前一个点数据
     _prev_x = new_x, _prev_y = new_y, _prev_yaw = new_yaw;
 
     handle_laser_scan(laser_scan);

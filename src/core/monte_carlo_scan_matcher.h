@@ -61,11 +61,13 @@ public:
       obs->on_matching_start(init_pose, scan, map);
     });
 
+    //
     unsigned failed_tries = 0, total_tries = 0;
     std::shared_ptr<ScanCostEstimator> sce = GridScanMatcher::cost_estimator();
     double min_scan_cost = std::numeric_limits<double>::max();
     RobotState optimal_pose = init_pose;
 
+    //评估误差
     min_scan_cost = sce->estimate_scan_cost(optimal_pose, scan,
                                             map, min_scan_cost);
 
@@ -74,25 +76,32 @@ public:
       obs->on_pose_update(optimal_pose, scan, min_scan_cost);
     });
 
+    //粒子滤波实现，总数不超过_total_tries_limit
     while (failed_tries < _failed_tries_limit &&
            total_tries < _total_tries_limit) {
       total_tries++;
 
+      //在周围随机生成
       RobotState sampled_pose = optimal_pose;
       sample_pose(sampled_pose);
+      //计算新粒子误差
       double sampled_scan_cost = sce->estimate_scan_cost(sampled_pose, scan,
                                                          map, min_scan_cost);
       do_for_each_observer([sampled_pose, scan, sampled_scan_cost](ObsPtr obs) {
         obs->on_scan_test(sampled_pose, scan, sampled_scan_cost);
       });
 
+      //不好的粒子
       if (min_scan_cost <= sampled_scan_cost) {
         failed_tries++;
         continue;
       }
 
+      //产生了一个较好粒子
       min_scan_cost = sampled_scan_cost;
       optimal_pose = sampled_pose;
+
+      //用新粒子再次迭代，范围相应缩小
       failed_tries = on_estimate_update(failed_tries, _failed_tries_limit);
 
       do_for_each_observer([optimal_pose, scan, min_scan_cost](ObsPtr obs) {

@@ -63,6 +63,8 @@ public: // methods
                                  double laser_x, double laser_y,
                                  double beam_end_x, double beam_end_y,
                                  bool is_occ, double quality) {
+
+    std::cout << "handle_scan_point" << std::endl;
     Point robot_pt = map.world_to_cell(laser_x, laser_y);
     Point obst_pt = map.world_to_cell(beam_end_x, beam_end_y);
 

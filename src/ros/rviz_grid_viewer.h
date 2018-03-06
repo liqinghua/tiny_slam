@@ -39,6 +39,8 @@ public: // method
     _tf_brcst.sendTransform(
       tf::StampedTransform(t, ros::Time::now(),
                            _frame_odom, _frame_robot_pose));
+
+    //std::cout << "send tf :" << std::endl;
   }
 
 /**
@@ -69,6 +71,7 @@ public: // method
       }
     }
 
+    //std::cout << "publish map" << std::endl;
     _map_pub.publish(map_msg);
     _last_pub_time = ros::Time::now();
   }

@@ -3,9 +3,12 @@
 
   <param name="use_sim_time" value="true"/>
   <arg name="dataset" default="" />
-  <arg name="rate" default="1.0" />
+  <arg name="rate" default="10.0" />
 
-  <node name="tinySLAM" pkg="tiny_slam" type="tiny_slam"
+  <!-- 数据文件地址 -->
+  <arg name="path" default="$(find tiny_slam)/TB3_WAFFLE_SLAM.bag" />
+
+  <node name="tinySLAM" pkg="tiny_slam" type="tiny_slam_node"
         cwd="node" required="true" output="screen">
     <remap from="laser_scan" to="/base_scan" />
 
@@ -21,7 +24,7 @@
     <!-- Map setup-->
     <param name="map_height_in_meters" value="50" />
     <param name="map_width_in_meters" value="50" />
-    <param name="map_meters_per_cell" value="0.1" />
+    <param name="map_meters_per_cell" value="0.02" />
 
     <!-- Internal constants setup -->
     <param name="base_occupied_prob" value="0.95" />

@@ -62,7 +62,7 @@ Visualization Manager:
       Draw Behind: false
       Enabled: true
       Name: Map
-      Topic: /map_tiny_slam
+      Topic: /map
       Unreliable: false
       Use Timestamp: false
       Value: true
